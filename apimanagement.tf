@@ -1,74 +1,73 @@
 # apimanagement.tf
-# This file defines the Azure API Management (APIM) service, including its APIs,
-# operations, policies, products, and subscriptions. APIM acts as a facade
-# to manage, secure, and publish APIs.
+# このファイルは、API、操作、ポリシー、製品、およびサブスクリプションを含む Azure API Management (APIM) サービスを定義します。
+# APIM は、API を管理、保護、公開するためのファサードとして機能します。
 
-# 1. API Management Service
-# Defines the main Azure API Management service instance.
+# 1. API Management サービス
+# メインの Azure API Management サービスインスタンスを定義します。
 resource "azurerm_api_management" "apim_service" {
-  # The name of the API Management service.
+  # API Management サービスの名前。
   name                = var.api_management_service_name
-  # The Azure region where the APIM service will be deployed.
+  # APIM サービスがデプロイされる Azure リージョン。
   location            = azurerm_resource_group.main.location
-  # The resource group in which to create the API Management service.
+  # API Management サービスを作成するリソースグループ。
   resource_group_name = azurerm_resource_group.main.name
-  # The name of the API publisher.
-  publisher_name      = "My Company" # Replace with your publisher name
-  # The email address of the API publisher.
-  publisher_email     = "admin@example.com" # Replace with your email
+  # API 発行者の名前。
+  publisher_name      = "My Company" # 発行者の名前に置き換えてください
+  # API 発行者のメールアドレス。
+  publisher_email     = "admin@example.com" # メールアドレスに置き換えてください
 
-  # The SKU (pricing tier and capacity) of the API Management service.
-  # "Developer_1" is suitable for development and testing. Choose an appropriate SKU for production.
-  sku_name = "Developer_1" # Basic SKU for development. Choose appropriate for production.
+  # API Management サービスの SKU (価格ティアと容量)。
+  # "Developer_1" は開発およびテストに適しています。運用環境には適切な SKU を選択してください。
+  sku_name = "Developer_1" # 開発用の基本 SKU。運用環境には適切なものを選択してください。
 
-  # Configuration for the Managed Identity of the API Management service.
+  # API Management サービスのマネージド ID の構成。
   identity {
-    # Type of Managed Service Identity. "SystemAssigned" means Azure automatically manages the identity.
-    type = "SystemAssigned" # Enable Managed Identity for API Management
+    # マネージドサービス ID のタイプ。"SystemAssigned" は Azure が ID を自動的に管理することを意味します。
+    type = "SystemAssigned" # API Management のマネージド ID を有効にする
   }
 }
 
-# 2. API: Representing our backend service
-# Defines an API within the API Management service, acting as an interface to a backend service.
+# 2. API: バックエンドサービスを表す
+# API Management サービス内に API を定義し、バックエンドサービスへのインターフェースとして機能させます。
 resource "azurerm_api_management_api" "backend_api" {
-  # The name of the API as it appears in API Management.
+  # API Management に表示される API の名前。
   name                = "BackendAPI"
-  # The resource group containing the API Management service.
+  # API Management サービスを含むリソースグループ。
   resource_group_name = azurerm_resource_group.main.name
-  # The name of the parent API Management service.
+  # 親の API Management サービスの名前。
   api_management_name = azurerm_api_management.apim_service.name
-  # The revision number of the API.
-  revision            = "1" # Revision for the API
-  # A user-friendly display name for the API.
+  # API のリビジョン番号。
+  revision            = "1" # API のリビジョン
+  # API のユーザーフレンドリーな表示名。
   display_name        = "Backend API"
-  # The base URL path for this API (e.g., requests to /api/data).
-  path                = "api" # Base path for this API (e.g., /api/data)
-  # The protocols clients can use to access the API (e.g., "https").
+  # この API のベース URL パス (例: /api/data へのリクエスト)。
+  path                = "api" # この API のベースパス (例: /api/data)
+  # クライアントが API にアクセスするために使用できるプロトコル (例: "https")。
   protocols           = ["https"]
-  # The URL of the backend service that this API will proxy to (e.g., an Azure Function App hostname).
-  service_url         = azurerm_function_app.backend_function_app.default_hostname # Points to the Function App hostname
-  # A description of the API.
-  description         = "API to interact with the backend Azure Function."
+  # この API がプロキシするバックエンドサービスの URL (例: Azure Function App のホスト名)。
+  service_url         = azurerm_function_app.backend_function_app.default_hostname # Function App のホスト名を指します
+  # API の説明。
+  description         = "バックエンドの Azure Function と対話するための API。"
 }
 
-# API Policy for Backend API
-# Defines a policy that applies to the entire API, such as URL rewriting or authentication.
+# バックエンド API の API ポリシー
+# URL 書き換えや認証など、API 全体に適用されるポリシーを定義します。
 resource "azurerm_api_management_api_policy" "backend_api_policy" {
-  # The name of the API to which this policy applies.
+  # このポリシーが適用される API の名前。
   api_name            = azurerm_api_management_api.backend_api.name
-  # The name of the parent API Management service.
+  # 親の API Management サービスの名前。
   api_management_name = azurerm_api_management.apim_service.name
-  # The resource group containing the API Management service.
+  # API Management サービスを含むリソースグループ。
   resource_group_name = azurerm_resource_group.main.name
 
-  # The XML content of the policy. This example rewrites the URL to target an Azure Function.
+  # ポリシーの XML コンテンツ。この例では、Azure Function をターゲットにするように URL を書き換えます。
   xml_content = <<-XML
     <policies>
       <inbound>
         <base />
-        <!-- Set the backend service URL dynamically to the Function App's hostname -->
+        <!-- バックエンドサービス URL を Function App のホスト名に動的に設定 -->
         <set-backend-service base-url="https://${azurerm_function_app.backend_function_app.default_hostname}/api" />
-        <!-- Rewrite the URL path to match the Function App's expected path -->
+        <!-- Function App の予期されるパスに一致するように URL パスを書き換え -->
         <rewrite-uri template="@(context.Request.Url.Path.ToString().Replace("/api", "/"))" />
       </inbound>
       <backend>
@@ -84,78 +83,78 @@ resource "azurerm_api_management_api_policy" "backend_api_policy" {
   XML
 }
 
-# 3. API Operation for /data (GET)
-# Defines a specific operation (e.g., a GET request to /data) within an API.
+# 3. /data (GET) の API 操作
+# API 内の特定の操作 (例: /data への GET リクエスト) を定義します。
 resource "azurerm_api_management_api_operation" "get_data_operation" {
-  # The name of the parent API Management service.
+  # 親の API Management サービスの名前。
   api_management_name = azurerm_api_management.apim_service.name
-  # The name of the API to which this operation belongs.
+  # この操作が属する API の名前。
   api_name            = azurerm_api_management_api.backend_api.name
-  # The resource group containing the API Management service.
+  # API Management サービスを含むリソースグループ。
   resource_group_name = azurerm_resource_group.main.name
-  # A user-friendly display name for the operation.
+  # 操作のユーザーフレンドリーな表示名。
   display_name        = "Get Data"
-  # The HTTP method for this operation (e.g., "GET", "POST").
+  # この操作の HTTP メソッド (例: "GET", "POST")。
   method              = "GET"
-  # The URL template for this operation (e.g., "/data" will map to /api/data).
-  url_template        = "/data" # This will map to /api/data
-  # A description of the operation.
-  description         = "Retrieves data from the backend."
+  # この操作の URL テンプレート (例: "/data" は /api/data にマッピングされます)。
+  url_template        = "/data" # これは /api/data にマッピングされます
+  # 操作の説明。
+  description         = "バックエンドからデータを取得します。"
 
-  # Defines the expected responses for this operation.
+  # この操作の予期されるレスポンスを定義します。
   response {
-    # The HTTP status code of the response.
+    # レスポンスの HTTP ステータスコード。
     status_code = 200
-    # A description of the response.
+    # レスポンスの説明。
     description = "Successful response"
   }
 }
 
-# 4. Product to manage API access and subscriptions
-# Products are used to group APIs and define their visibility and access policies.
+# 4. API アクセスとサブスクリプションを管理する製品
+# 製品は API をグループ化し、その可視性とアクセスポリシーを定義するために使用されます。
 resource "azurerm_api_management_product" "starter_product" {
-  # A unique identifier for the product.
+  # 製品の一意の識別子。
   product_id          = "starter"
-  # The name of the parent API Management service.
+  # 親の API Management サービスの名前。
   api_management_name = azurerm_api_management.apim_service.name
-  # The resource group containing the API Management service.
+  # API Management サービスを含むリソースグループ。
   resource_group_name = azurerm_resource_group.main.name
-  # A user-friendly display name for the product.
+  # 製品のユーザーフレンドリーな表示名。
   display_name        = "Starter"
-  # Indicates whether a subscription is required to access APIs in this product.
+  # この製品の API にアクセスするためにサブスクリプションが必要かどうかを示します。
   subscription_required = true
-  # Indicates whether administrator approval is required for new subscriptions.
+  # 新しいサブスクリプションに管理者承認が必要かどうかを示します。
   approval_required   = false
-  # Indicates whether the product is published (visible to developers).
+  # 製品が公開されているかどうか (開発者に表示されるかどうか) を示します。
   published           = true
 }
 
-# Link the API to the Product
-# Associates a defined API with a product, making it accessible through that product.
+# API を製品にリンクする
+# 定義された API を製品に関連付け、その製品を通じてアクセスできるようにします。
 resource "azurerm_api_management_product_api" "product_api_link" {
-  # The ID of the product.
+  # 製品の ID。
   product_id          = azurerm_api_management_product.starter_product.product_id
-  # The name of the API to link.
+  # リンクする API の名前。
   api_name            = azurerm_api_management_api.backend_api.name
-  # The name of the parent API Management service.
+  # 親の API Management サービスの名前。
   api_management_name = azurerm_api_management.apim_service.name
-  # The resource group containing the API Management service.
+  # API Management サービスを含むリソースグループ。
   resource_group_name = azurerm_resource_group.main.name
 }
 
-# 5. Subscription (API Key) for the product
-# Represents a subscription key that grants access to APIs within a specific product.
+# 5. 製品のサブスクリプション (API キー)
+# 特定の製品内の API へのアクセスを許可するサブスクリプションキーを表します。
 resource "azurerm_api_management_subscription" "product_subscription" {
-  # The name of the parent API Management service.
+  # 親の API Management サービスの名前。
   api_management_name = azurerm_api_management.apim_service.name
-  # The resource group containing the API Management service.
+  # API Management サービスを含むリソースグループ。
   resource_group_name = azurerm_resource_group.main.name
-  # The ID of the product this subscription is for.
+  # このサブスクリプションの製品の ID。
   product_id          = azurerm_api_management_product.starter_product.product_id
-  # A user-friendly display name for the subscription.
+  # サブスクリプションのユーザーフレンドリーな表示名。
   display_name        = "StarterSubscription"
-  # The ID of the user associated with this subscription (e.g., a built-in admin user).
-  user_id             = "576a81577740e21a240656a7" # Built-in 'admin' user ID for API Management
-  # The state of the subscription (e.g., "active").
+  # このサブスクリプションに関連付けられているユーザーの ID (例: 組み込みの 'admin' ユーザー)。
+  user_id             = "576a81577740e21a240656a7" # API Management の組み込みの 'admin' ユーザー ID
+  # サブスクリプションの状態 (例: "active")。
   state = "active"
 }

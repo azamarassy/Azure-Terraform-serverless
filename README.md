@@ -1,94 +1,120 @@
-学習のために構築した環境です。
+# Azure Serverless Application with Terraform
 
-# 目次
+This repository contains Terraform configurations to deploy a serverless application on Microsoft Azure. The architecture leverages Azure Front Door for global routing and WAF protection, Azure API Management for API gateway capabilities, an Azure Function App for backend logic, and Azure Blob Storage for static website hosting.
 
-* [1. 実装要件](#1-実装要件)
-* [2. 本構成のメリット](#2-本構成のメリット)
-* [3. 設計思想と技術選定のポイント](#3-設計思想と技術選定のポイント)
-* [4. 構築時の注意点](#4-構築時の注意点)
-* [5. 参照](#5-参照)
+## Table of Contents
 
-# 1. 実装要件
+*   [1. Architecture Overview](#1-architecture-overview)
+*   [2. Key Azure Services Used](#2-key-azure-services-used)
+*   [3. Features](#3-features)
+*   [4. Prerequisites](#4-prerequisites)
+*   [5. Deployment Guide](#5-deployment-guide)
+*   [6. Outputs](#6-outputs)
+*   [7. Cleanup](#7-cleanup)
+*   [8. References](#8-references)
 
-下記を実装し動作させることが今回の学習目的です。
+## 1. Architecture Overview
 
- * 静的フロントエンド： S3 + CloudFront
- * 動的処理（API）： API Gateway + Lambda
- * セキュリティ： AWS WAF による保護、ACMによるHTTPS化
- * 認証： CloudFrontからAPI GatewayへAPI Keyを付与してバックエンドを保護
- * 管理： TerraformによるInfrastructure as Code (IaC)
+The deployed architecture provides a scalable, secure, and efficient way to host a static website with a serverless API backend.
 
-セキュリティを意識しつつ、サーバーレスで一般的に使われている構成にしました。
+![Azure Architecture Diagram](Lambda構成図.jpg)
+_Note: The diagram currently shows an AWS Lambda architecture. This should be updated to reflect the Azure services._
 
-![Lambda構成図.jpg](Lambda構成図.jpg)
+## 2. Key Azure Services Used
 
----
+*   **Azure Front Door Premium:** Global, scalable entry-point for web applications, providing WAF protection, content delivery, and intelligent routing.
+*   **Azure API Management:** Manages, publishes, secures, and analyzes APIs, acting as a facade for backend services.
+*   **Azure Function App:** Serverless compute service for running event-driven code without managing infrastructure.
+*   **Azure Blob Storage (Static Website Hosting):** Cost-effective and scalable storage for hosting static web content.
+*   **Azure DNS:** Hosts DNS domains, providing name resolution for the application's custom domain.
+*   **Azure Resource Group:** A logical container for Azure resources.
+*   **Azure Storage Account (for Function App & Terraform State):** Provides durable storage for the Function App's runtime and for Terraform's state file.
+*   **Azure Application Insights:** Application Performance Management (APM) service for monitoring the Function App.
 
-# 2. 本構成のメリット
+## 3. Features
 
- * CloudFront をS3, API Gateway前段に配置
-   * セキュリティ向上: OAC（Origin Access Control）によるS3の完全非公開化と、AWS WAFの一括適用が可能
-   * パフォーマンス: 世界各地のエッジロケーションでのキャッシュによる高速配信
-   * ドメイン統合: S3とAPI Gatewayのドメインを1つに集約し、CORS問題を回避
- * サーバーレス（API Gateway + Lambda）の採用
-   * 運用負荷の軽減: サーバーのOS管理やパッチ当てが不要になり、管理コストを最小化
-   * 高いスケーラビリティ: リクエスト量に応じて自動でスケーリングされるため、急なトラフィック増にも柔軟に対応  
+*   **Global Traffic Management:** Azure Front Door intelligently routes user requests to the nearest healthy backend.
+*   **Web Application Firewall (WAF) Protection:** Integrated WAF in Azure Front Door Premium protects against common web vulnerabilities and DDoS attacks.
+*   **API Gateway with Policy Enforcement:** Azure API Management provides a centralized gateway for APIs, enabling security, caching, rate limiting, and request/response transformations.
+*   **Serverless Backend:** Azure Function App executes backend logic efficiently, scaling automatically with demand.
+*   **Static Website Hosting:** Cost-effective and high-performance hosting for front-end assets using Azure Blob Storage.
+*   **Custom Domain Support:** Configured with Azure DNS for custom domain resolution.
+*   **Infrastructure as Code (IaC):** Entire infrastructure defined and deployed using Terraform for consistency and repeatability.
+*   **Managed Identities:** Secure access between Azure services using System-Assigned Managed Identities.
 
----
-# 3. 設計思想と技術選定のポイント
+## 4. Prerequisites
 
-## 3-1. 多層防御によるセキュリティ設計
+Before deploying this infrastructure, ensure you have the following installed and configured:
 
- * S3の完全非公開化とWAF保護
-   OACを利用してS3への直接アクセスを遮断し、CloudFrontを経由したアクセスのみを許可。すべてのWebトラフィックにAWS WAFを強制適用し、設定ミスによる情報流出リスクを排除しました。
- * バックエンド（Lambda）の多層防御
-   * APIキー認証と利用プラン: 特定のキーを持つユーザーのみが、定義されたレート制限（スロットリング）の範囲内で実行できる仕組みを導入。
-   * 最小権限の原則: Lambdaのリソースベースポリシーにより、「API Gatewayの特定のパス・メソッドからの呼び出しのみ」を明示的に許可し、不正な実行を防止。
- * トラフィック制御による保護
-   Usage Plan（利用プラン）によるレート制限（例：100 req/sec）を設定。DDoS攻撃や予期せぬアクセス集中によるコスト増加やバックエンドのパンクを未然に防ぎます。
- * オリジン直叩きの防止（X-Origin-Verify）
-   API GatewayのURLが漏洩した場合に備え、CloudFrontからカスタムヘッダーを付与し、WAFでその値を検証。正規ルートを経由しないアクセスをインフラレベルで遮断します。
-   
-## 3-2. ネットワーク設計
- * APIエンドポイントの構成
-   CloudFrontが前段に控えているため、API Gatewayは「REGIONAL」タイプを選択しました。
- * Route 53 Aliasレコードの活用​
-Zone Apex（ドメイン名そのもの）でCloudFrontを利用可能にするため、CNAMEではなくRoute 53のAlias機能を利用しています。これにより、ドメイン名を直接CloudFrontのディストリビューションに関連付けています。
-## 3-3. パフォーマンス最適化
+*   [Terraform CLI](https://developer.hashicorp.com/terraform/downloads) (v1.0.0 or later recommended)
+*   [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) (or Azure PowerShell)
+*   An Azure subscription
+*   Properly configured Azure credentials for Terraform (e.g., by running `az login`)
 
- * パスベースのキャッシュ戦略
-   静的コンテンツ（S3）はエッジでキャッシュさせて高速化。一方、動的データ（API）はキャッシュを無効化（Managed-CachingDisabled）し、常に最新データを返すよう制御しました。
-   
-## 3-4. IaC（Terraform）による管理
+## 5. Deployment Guide
 
- * 自動デプロイの整合性担保
-   REST APIやLambdaコードの変更をハッシュ値（triggers / source_code_hash）で検知。修正後の terraform apply で最新の状態が反映されるようにしました。
- * ゼロダウンタイムでの更新
-   create_before_destroy ライフサイクルを活用し、リソース更新時に新しいものを作成してから古いものを消す設定にしています。
-   
----   
-# 4. 構築時の注意点
-実装にあたって特に注意すべき、Terraform構築時に反映されない原因などを4点にまとめました。
- * CloudFront の ACM は必ず us-east-1
-   メインの構築リージョンが東京（ap-northeast-1）であっても、CloudFrontに関連付ける証明書だけはバージニア北部で作成する必要があります。
- * API Gateway は Deployment を明示的に作らないと反映されない
-   API Gatewayは「編集中の設定」と「公開済みの設定（ステージ）」が分離されているため、明示的なデプロイ操作が不可欠です。
- * 変更検知用に triggers を活用する
-   aws_api_gateway_deployment 内で triggers ブロックを使い、メソッドやLambdaのIDを監視しましょう。これがないと、Terraform側でコードを書き換えてもAPI Gateway側が再デプロイされず、古い挙動が残ります。
- * キャッシュ挙動はパス単位で分ける
-   * 静的コンテンツ (/index.html, /static/*): CloudFrontにキャッシュさせる（Managed-CachingOptimized）。
-   * APIリクエスト (/data): キャッシュを無効化する（Managed-CachingDisabled）。  
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/azamarassy/Azure-Terraform-serverless.git
+    cd Azure-Terraform-serverless
+    ```
 
+2.  **Initialize Terraform:**
+    First, you need to create the resource group and storage account for Terraform's state manually or by running a partial apply.
+    ```bash
+    # Ensure you are logged into Azure CLI (az login)
 
----
+    # You might need to manually create the resource group for the tfstate storage account if it doesn't exist.
+    # az group create --name <your-tfstate-resource-group-name> --location <your-location>
 
-# 5. 参照
-[CloudFrontドキュメント](https://docs.aws.amazon.com/ja_jp/cloudfront/?id=docs_gateway)
+    # Run terraform init to download provider plugins.
+    terraform init
+    ```
 
-[APIGatewayドキュメント](https://docs.aws.amazon.com/ja_jp/apigateway/latest/developerguide/api-gateway-documenting-api.html)
+    **Note on Backend Configuration:** The `main.tf` contains a commented-out backend configuration block for `azurerm`. Once the `azurerm_storage_account.tfstate` and `azurerm_storage_container.tfstate` resources are successfully created by a `terraform apply`, you should uncomment this block in `main.tf` and replace the placeholder values with the actual names of the resource group, storage account, and container. This is crucial for remote state management.
 
-[S3ドキュメント](https://docs.aws.amazon.com/ja_jp/s3/?icmpid=docs_homepage_featuredsvcs)
+3.  **Plan the deployment:**
+    ```bash
+    terraform plan -out main.tfplan
+    ```
+    Review the proposed changes.
 
-[Lambdaドキュメント](https://docs.aws.amazon.com/ja_jp/lambda/?icmpid=docs_homepage_featuredsvcs)
+4.  **Apply the deployment:**
+    ```bash
+    terraform apply "main.tfplan"
+    ```
+    Type `yes` when prompted to confirm the deployment.
 
-[Terraformドキュメント](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
+5.  **Configure Custom Domain (Optional but Recommended):**
+    If you're using a custom domain, you need to update your domain registrar's NS records to point to the nameservers provided by Azure DNS (see `Outputs` section).
+
+## 6. Outputs
+
+After a successful `terraform apply`, the following important outputs will be displayed:
+
+*   `resource_group_name`: The name of the Azure Resource Group.
+*   `api_management_gateway_url`: The URL of the Azure API Management gateway.
+*   `function_app_default_hostname`: The default hostname of the Azure Function App.
+*   `front_door_frontend_endpoint_host_name`: The hostname of the Azure Front Door frontend endpoint.
+*   `static_website_endpoint`: The primary web endpoint for the static website.
+*   `dns_zone_name`: The name of the Azure DNS Zone.
+*   `dns_zone_nameservers`: The nameservers for the Azure DNS Zone (important for custom domain configuration).
+*   `api_management_subscription_primary_key`: The primary key for the API Management Starter subscription (sensitive).
+
+## 7. Cleanup
+
+To destroy all the deployed resources:
+
+```bash
+terraform destroy
+```
+Type `yes` when prompted to confirm the destruction.
+
+## 8. References
+
+*   [Azure Front Door Documentation](https://learn.microsoft.com/en-us/azure/frontdoor/)
+*   [Azure API Management Documentation](https://learn.microsoft.com/en-us/azure/api-management/)
+*   [Azure Functions Documentation](https://learn.microsoft.com/en-us/azure/azure-functions/)
+*   [Azure Blob Storage (Static Websites) Documentation](https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website)
+*   [Azure DNS Documentation](https://learn.microsoft.com/en-us/azure/dns/)
+*   [Terraform AzureRM Provider Documentation](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)

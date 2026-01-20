@@ -1,21 +1,20 @@
 # permissions.tf
-# This file defines Azure Role Assignments to grant necessary permissions
-# between different services within the infrastructure. This is crucial
-# for secure inter-service communication using Managed Identities.
+# このファイルは、インフラストラクチャ内の異なるサービス間で必要なアクセス許可を付与するための Azure ロール割り当てを定義します。
+# これは、マネージド ID を使用した安全なサービス間通信にとって非常に重要です。
 
-# 1. Grant API Management Managed Identity access to Function App
-# This role assignment allows the Managed Identity of the Azure API Management service
-# to invoke (call) the Azure Function App. This is a common pattern for secure
-# backend integration without exposing credentials.
+# 1. API Management マネージド ID に Function App へのアクセスを許可する
+# このロール割り当ては、Azure API Management サービスのマネージド ID が
+# Azure Function App を呼び出す (実行する) ことを許可します。これは、資格情報を公開せずに安全な
+# バックエンド統合を行うための一般的なパターンです。
 resource "azurerm_role_assignment" "apim_to_function_app_invoke" {
-  # The scope of the role assignment, specifying which resource the principal has access to.
-  # Here, it's scoped to the Function App, meaning APIM can only invoke this specific Function App.
+  # ロール割り当てのスコープ。プリンシパルがアクセスできるリソースを指定します。
+  # ここでは Function App にスコープが設定されており、APIM はこの特定の Function App のみを呼び出すことができます。
   scope                = azurerm_function_app.backend_function_app.id
-  # The name of the built-in role to assign.
-  # "Azure Function Data Reader" grants read access to function data and invocation rights.
-  # For broader access during development or if more control plane actions are needed, "Contributor" could be used (with caution).
-  role_definition_name = "Azure Function Data Reader" # Or "Contributor" for broader access during development
-  # The Principal ID of the Managed Identity that is being granted the role.
-  # This refers to the System-Assigned Managed Identity of the API Management service.
+  # 割り当てる組み込みロールの名前。
+  # "Azure Function Data Reader" は、関数データへの読み取りアクセスと呼び出し権限を付与します。
+  # 開発中により広範なアクセスが必要な場合や、より多くのコントロールプレーンアクションが必要な場合は、"Contributor" を使用することもできます (注意して)。
+  role_definition_name = "Azure Function Data Reader" # または開発中に広範なアクセスが必要な場合は "Contributor"
+  # ロールを付与されるマネージド ID のプリンシパル ID。
+  # これは API Management サービスのシステム割り当てマネージド ID を指します。
   principal_id         = azurerm_api_management.apim_service.identity[0].principal_id
 }

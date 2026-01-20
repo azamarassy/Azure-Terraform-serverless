@@ -14,8 +14,4 @@ resource "azurerm_storage_account" "static_website" {
   }
 }
 
-# Output the primary web endpoint for the static website
-output "static_website_endpoint" {
-  description = "The primary web endpoint for the static website hosted on Azure Blob Storage."
-  value       = azurerm_storage_account.static_website.primary_web_endpoint
-}
+

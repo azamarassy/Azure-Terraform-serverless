@@ -1,69 +1,69 @@
 # variables.tf
-# This file defines the input variables for the Terraform configuration.
-# Variables allow for parameterizing the deployment, making it more flexible
-# and reusable across different environments or projects.
+# このファイルは、Terraform 構成の入力変数を定義します。
+# 変数を使用すると、デプロイをパラメータ化して、異なる環境やプロジェクトで
+# より柔軟かつ再利用可能にすることができます。
 
-# Variable: Domain Name
-# The primary domain name for the application. This will be used for configuring DNS records.
+# 変数: ドメイン名
+# アプリケーションのメインドメイン名。これは DNS レコードの設定に使用されます。
 variable "domain_name" {
-  description = "The main domain name for the application."
+  description = "アプリケーションのメインドメイン名。"
   type        = string
-  default     = "example.com" # Default value, can be overridden during Terraform execution.
+  default     = "example.com" # デフォルト値。Terraform 実行時に上書きできます。
 }
 
-# Variable: Azure Region
-# The Azure region where the majority of the resources will be deployed.
+# 変数: Azure リージョン
+# 大部分のリソースがデプロイされる Azure リージョン。
 variable "location" {
-  description = "The Azure region where resources will be deployed."
+  description = "リソースがデプロイされる Azure リージョン。"
   type        = string
-  default     = "japaneast" # Default to Japan East, can be changed.
+  default     = "japaneast" # デフォルトは東日本。変更可能です。
 }
 
-# Variable: Resource Group Name
-# The name of the Azure Resource Group that will contain all the deployed resources.
+# 変数: リソースグループ名
+# デプロイされるすべてのリソースを含む Azure リソースグループの名前。
 variable "resource_group_name" {
-  description = "The name of the resource group to create."
+  description = "作成するリソースグループの名前。"
   type        = string
-  default     = "rg-serverless-app" # Default name for the resource group.
+  default     = "rg-serverless-app" # リソースグループのデフォルト名。
 }
 
-# Variable: Storage Account Name for Static Website
-# The name of the Azure Storage Account used for hosting the static website.
-# This name must be globally unique across Azure and adhere to naming conventions (lowercase, no special characters).
+# 変数: 静的ウェブサイト用ストレージアカウント名
+# 静的ウェブサイトのホスティングに使用される Azure ストレージアカウントの名前。
+# この名前は Azure 全体でグローバルに一意であり、命名規則 (小文字、特殊文字なし) に従う必要があります。
 variable "storage_account_name" {
-  description = "The name of the Azure Storage Account for static website hosting."
+  description = "静的ウェブサイトホスティング用の Azure ストレージアカウントの名前。"
   type        = string
-  default     = "staticwebsiteappstorage" # Must be globally unique, lowercase, no special characters
+  default     = "staticwebsiteappstorage" # グローバルで一意、小文字、特殊文字なしである必要があります
 }
 
-# Variable: Azure Function App Name
-# The name of the Azure Function App that will host the backend logic.
+# 変数: Azure Function App 名
+# バックエンドロジックをホストする Azure Function App の名前。
 variable "function_app_name" {
-  description = "The name of the Azure Function App."
+  description = "Azure Function App の名前。"
   type        = string
-  default     = "func-serverless-app" # Default name for the Function App.
+  default     = "func-serverless-app" # Function App のデフォルト名。
 }
 
-# Variable: API Management Service Name
-# The name of the Azure API Management service instance.
+# 変数: API Management サービス名
+# Azure API Management サービスインスタンスの名前。
 variable "api_management_service_name" {
-  description = "The name of the Azure API Management service."
+  description = "Azure API Management サービスの名前。"
   type        = string
-  default     = "apim-serverless-app" # Default name for the API Management service.
+  default     = "apim-serverless-app" # API Management サービスのデフォルト名。
 }
 
-# Variable: Front Door Profile Name
-# The name of the Azure Front Door profile.
+# 変数: Front Door プロファイル名
+# Azure Front Door プロファイルの名前。
 variable "front_door_name" {
-  description = "The name of the Azure Front Door profile."
+  description = "Azure Front Door プロファイルの名前。"
   type        = string
-  default     = "afd-serverless-app" # Default name for the Front Door profile.
+  default     = "afd-serverless-app" # Front Door プロファイルのデフォルト名。
 }
 
-# Variable: Azure Function App Log Level
-# The logging level for the Azure Function App.
+# 変数: Azure Function App ログレベル
+# Azure Function App のログレベル。
 variable "log_level" {
-  description = "The log level for the Azure Function App."
+  description = "Azure Function App のログレベル。"
   type        = string
-  default     = "INFO" # Common log levels include "INFO", "WARNING", "ERROR", "DEBUG".
+  default     = "INFO" # 一般的なログレベルには "INFO"、"WARNING"、"ERROR"、"DEBUG" があります。
 }

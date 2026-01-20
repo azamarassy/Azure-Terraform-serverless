@@ -17,8 +17,8 @@
 
 デプロイされたアーキテクチャは、サーバーレス API バックエンドを持つ静的ウェブサイトをホストするための、スケーラブルで安全かつ効率的な方法を提供します。
 
-![Azure Architecture Diagram](Lambda構成図.jpg)
-_注: 現在の図は AWS Lambda アーキテクチャを示しています。これは Azure サービスを反映するように更新される必要があります。_
+![Azure Architecture Diagram](構成図.jpg)
+
 
 ## 2. 使用されている主な Azure サービス
 

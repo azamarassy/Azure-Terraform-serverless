@@ -41,3 +41,9 @@ variable "front_door_name" {
   type        = string
   default     = "afd-serverless-app"
 }
+
+variable "log_level" {
+  description = "The log level for the Azure Function App."
+  type        = string
+  default     = "INFO"
+}

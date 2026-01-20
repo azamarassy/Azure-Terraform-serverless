@@ -12,7 +12,12 @@ output "api_management_gateway_url" {
 
 output "function_app_default_hostname" {
   description = "The default hostname of the Azure Function App."
-  value       = "Placeholder for Azure Function App Hostname" # Will be updated later
+  value       = azurerm_function_app.backend_function_app.default_hostname
+}
+
+output "function_app_identity_principal_id" {
+  description = "The Principal ID of the System Assigned Managed Identity for the Function App."
+  value       = azurerm_function_app.backend_function_app.identity[0].principal_id
 }
 
 output "front_door_frontend_endpoint_host_name" {

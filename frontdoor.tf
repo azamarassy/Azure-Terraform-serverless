@@ -15,7 +15,7 @@ resource "azurerm_cdn_frontdoor_endpoint" "main_endpoint" {
   name                     = "${var.front_door_name}-endpoint"
   cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.main_profile.id
   enabled                  = true
-  cdn_frontdoor_waf_policy_link_id = azurerm_cdn_frontdoor_firewall_policy.main_waf_policy.id
+
 }
 
 # 3. WAF Policy for Front Door
@@ -26,18 +26,20 @@ resource "azurerm_cdn_frontdoor_firewall_policy" "main_waf_policy" {
 
   # Managed Rule Set (OWASP)
   managed_rule {
+    action = "Block" # Default action for managed rules
     managed_rule_set {
       type    = "OWASP"
       version = "3.2" # Or latest version
     }
-    action = "Block" # Default action for managed rules
   }
 
   # Policy settings
   policy_setting {
     mode = "Detection" # Or "Prevention"
-    default_custom_block_response_status_code = 403
-    default_custom_block_response_body = "Access Denied."
+    custom_block_response {
+      status_code = 403
+      body        = "Access Denied."
+    }
   }
 
   # Geo-restriction (example for Japan only)

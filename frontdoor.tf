@@ -4,8 +4,13 @@
 resource "azurerm_cdn_frontdoor_profile" "main_profile" {
   name                = var.front_door_name
   resource_group_name = azurerm_resource_group.main.name
-  location            = "Global" # Front Door is a global service
+
   sku_name            = "Premium_AzureFrontDoor"
+
+  security_policy {
+    name    = azurerm_cdn_frontdoor_firewall_policy.main_waf_policy.name
+    waf_policy_id = azurerm_cdn_frontdoor_firewall_policy.main_waf_policy.id
+  }
 }
 
 # 2. Front Door Endpoint
@@ -16,25 +21,27 @@ resource "azurerm_cdn_frontdoor_endpoint" "main_endpoint" {
 }
 
 # 3. WAF Policy for Front Door
-resource "azurerm_web_application_firewall_policy" "main_waf_policy" {
+resource "azurerm_cdn_frontdoor_firewall_policy" "main_waf_policy" {
   name                = "${var.front_door_name}-waf-policy"
   resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
+  cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.main_profile.id
 
-  managed_rule_set {
+  # Managed Rule Set (OWASP)
+  managed_rule {
     type    = "OWASP"
     version = "3.2" # Or latest version
   }
 
+  # Policy settings
   policy_setting {
     mode = "Detection" # Or "Prevention"
+    enabled = true # Enable the policy
   }
 
   # Geo-restriction (example for Japan only)
   custom_rule {
     name     = "GeoFilter"
     priority = 100
-    rule_type = "MatchRule"
     action   = "Block"
     match_condition {
       match_variable   = "RemoteAddr"
@@ -45,12 +52,7 @@ resource "azurerm_web_application_firewall_policy" "main_waf_policy" {
   }
 }
 
-# 4. Front Door Security Policy (attaching WAF policy)
-resource "azurerm_cdn_frontdoor_security_policy" "main_security_policy" {
-  name                     = "${var.front_door_name}-security-policy"
-  cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.main_profile.id
-  cdn_frontdoor_waf_policy_link_id = azurerm_web_application_firewall_policy.main_waf_policy.id
-}
+
 
 # 5. Front Door Origin Groups
 resource "azurerm_cdn_frontdoor_origin_group" "static_website_origin_group" {
@@ -58,7 +60,7 @@ resource "azurerm_cdn_frontdoor_origin_group" "static_website_origin_group" {
   cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.main_profile.id
   session_affinity_enabled = false
   load_balancing {
-    sample_size_in_request = 4
+    sample_size = 4
     successful_samples_required = 3
     additional_latency_in_milliseconds = 50
   }
@@ -75,7 +77,7 @@ resource "azurerm_cdn_frontdoor_origin_group" "api_management_origin_group" {
   cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.main_profile.id
   session_affinity_enabled = false
   load_balancing {
-    sample_size_in_request = 4
+    sample_size = 4
     successful_samples_required = 3
     additional_latency_in_milliseconds = 50
   }
@@ -98,6 +100,7 @@ resource "azurerm_cdn_frontdoor_origin" "static_website_origin" {
   priority                         = 1
   weight                           = 100
   enabled                          = true
+  certificate_name_check_enabled = true
 }
 
 resource "azurerm_cdn_frontdoor_origin" "api_management_origin" {
@@ -110,6 +113,7 @@ resource "azurerm_cdn_frontdoor_origin" "api_management_origin" {
   priority                         = 1
   weight                           = 100
   enabled                          = true
+  certificate_name_check_enabled = true
 }
 
 # 7. Front Door Route for Static Website (default)
@@ -118,14 +122,15 @@ resource "azurerm_cdn_frontdoor_route" "static_website_route" {
   cdn_frontdoor_endpoint_id   = azurerm_cdn_frontdoor_endpoint.main_endpoint.id
   cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.static_website_origin_group.id
   cdn_frontdoor_profile_id    = azurerm_cdn_frontdoor_profile.main_profile.id
+  cdn_frontdoor_origin_ids    = [azurerm_cdn_frontdoor_origin.static_website_origin.id]
+  supported_protocols         = ["Http", "Https"]
 
   patterns_to_match = ["/*"] # Default route for all paths
-  accepted_protocols = ["Http", "Https"]
   forwarding_protocol = "HttpsOnly"
   link_to_default_domain = true
   
   # Cache settings (similar to CloudFront default cache behavior)
-  cdn_frontdoor_cache_configuration {
+  cache {
     query_string_caching_behavior = "UseQueryString"
     query_strings                 = [] # Cache all query strings
   }
@@ -137,21 +142,16 @@ resource "azurerm_cdn_frontdoor_route" "api_management_route" {
   cdn_frontdoor_endpoint_id   = azurerm_cdn_frontdoor_endpoint.main_endpoint.id
   cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.api_management_origin_group.id
   cdn_frontdoor_profile_id    = azurerm_cdn_frontdoor_profile.main_profile.id
+  cdn_frontdoor_origin_ids    = [azurerm_cdn_frontdoor_origin.api_management_origin.id]
+  supported_protocols         = ["Http", "Https"]
 
   patterns_to_match = ["/api/*"] # Route for API paths
-  accepted_protocols = ["Http", "Https"]
   forwarding_protocol = "HttpsOnly"
   link_to_default_domain = true
   
   # Cache settings (similar to CloudFront cache behavior for API)
-  cdn_frontdoor_cache_configuration {
+  cache {
     query_string_caching_behavior = "BypassCaching" # Don't cache API calls
-  }
-
-  custom_request_header {
-    header_action = "Append"
-    header_name   = "Ocp-Apim-Subscription-Key"
-    value         = azurerm_api_management_subscription.product_subscription.primary_key
   }
 
 }

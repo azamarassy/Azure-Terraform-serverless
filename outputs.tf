@@ -35,3 +35,13 @@ output "static_website_endpoint" {
   description = "The primary web endpoint for the static website hosted on Azure Blob Storage."
   value       = azurerm_storage_account.static_website.primary_web_endpoint
 }
+
+output "dns_zone_name" {
+  description = "The name of the Azure DNS Zone."
+  value       = azurerm_dns_zone.primary.name
+}
+
+output "dns_zone_nameservers" {
+  description = "The nameservers for the Azure DNS Zone."
+  value       = azurerm_dns_zone.primary.name_servers
+}

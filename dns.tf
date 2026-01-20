@@ -1,49 +1,47 @@
 # dns.tf
-# This file manages Azure DNS Zone and DNS records to route traffic
-# to the Azure Front Door instance. This typically involves setting up
-# CNAME records for subdomains and potentially the root domain (apex).
+# このファイルは、Azure DNS ゾーンと DNS レコードを管理し、トラフィックを Azure Front Door インスタンスにルーティングします。
+# これには通常、サブドメインおよび場合によってはルートドメイン (apex) 用の CNAME レコードの設定が含まれます。
 
-# 1. Azure DNS Zone
-# Defines a DNS zone in Azure DNS for a specified domain name.
+# 1. Azure DNS ゾーン
+# 指定されたドメイン名の Azure DNS 内の DNS ゾーンを定義します。
 resource "azurerm_dns_zone" "primary" {
-  # The domain name for which this DNS zone is authoritative.
+  # この DNS ゾーンが権限を持つドメイン名。
   name                = var.domain_name
-  # The resource group in which to create the DNS zone.
+  # DNS ゾーンを作成するリソースグループ。
   resource_group_name = azurerm_resource_group.main.name
 }
 
-# 2. CNAME Record for 'www' pointing to Azure Front Door
-# Creates a CNAME (Canonical Name) record for the 'www' subdomain,
-# pointing it to the Azure Front Door endpoint.
+# 2. Azure Front Door を指す 'www' 用 CNAME レコード
+# 'www' サブドメイン用の CNAME (Canonical Name) レコードを作成し、Azure Front Door エンドポイントを指します。
 resource "azurerm_dns_cname_record" "www" {
-  # The name of the CNAME record (e.g., "www" for www.example.com).
+  # CNAME レコードの名前 (例: www.example.com の場合は "www")。
   name                = "www"
-  # The DNS zone name where this record will be created.
+  # このレコードが作成される DNS ゾーン名。
   zone_name           = azurerm_dns_zone.primary.name
-  # The resource group containing the DNS zone.
+  # DNS ゾーンを含むリソースグループ。
   resource_group_name = azurerm_resource_group.main.name
-  # The Time-To-Live (TTL) in seconds for the DNS record.
+  # DNS レコードの Time-To-Live (TTL) (秒単位)。
   ttl                 = 300
-  # The canonical name (target) of the record, which is the Azure Front Door endpoint hostname.
+  # レコードの正規名 (ターゲット)。Azure Front Door エンドポイントのホスト名です。
   record              = azurerm_cdn_frontdoor_endpoint.main_endpoint.host_name
 }
 
-# 3. CNAME Record for the root domain pointing to Azure Front Door
-# Creates a CNAME record for the root domain (apex domain), pointing it to Azure Front Door.
-# Note: Root domain CNAMEs (apex records) are not universally supported by DNS standards.
-# Azure DNS supports "Alias records" for this scenario (effectively CNAME flattening).
-# This resource will create a CNAME record for the root domain if the DNS provider allows CNAME flattening.
-# Otherwise, a user would typically need to configure this at their domain registrar level
-# or use A records pointing to Front Door's anycast IPs (which can change).
+# 3. Azure Front Door を指すルートドメイン用 CNAME レコード
+# ルートドメイン (apex ドメイン) 用の CNAME レコードを作成し、Azure Front Door を指します。
+# 注意: ルートドメインの CNAME (apex レコード) は、DNS 標準で普遍的にサポートされているわけではありません。
+# Azure DNS は、このシナリオで "エイリアスレコード" をサポートしています (実質的に CNAME フラットニング)。
+# このリソースは、DNS プロバイダーが CNAME フラットニングを許可している場合、ルートドメインの CNAME レコードを作成します。
+# そうでない場合、ユーザーは通常、ドメインレジストラレベルでこれを構成するか、
+# Front Door のエニーキャスト IP (変更される可能性があります) を指す A レコードを使用する必要があります。
 resource "azurerm_dns_cname_record" "root" {
-  # "@" represents the root domain (e.g., example.com).
-  name                = "@" # Represents the root domain
-  # The DNS zone name where this record will be created.
+  # "@" はルートドメイン (例: example.com) を表します。
+  name                = "@" # ルートドメインを表す
+  # このレコードが作成される DNS ゾーン名。
   zone_name           = azurerm_dns_zone.primary.name
-  # The resource group containing the DNS zone.
+  # DNS ゾーンを含むリソースグループ。
   resource_group_name = azurerm_resource_group.main.name
-  # The Time-To-Live (TTL) in seconds for the DNS record.
+  # DNS レコードの Time-To-Live (TTL) (秒単位)。
   ttl                 = 300
-  # The canonical name (target) of the record, which is the Azure Front Door endpoint hostname.
+  # レコードの正規名 (ターゲット)。Azure Front Door エンドポイントのホスト名です。
   record              = azurerm_cdn_frontdoor_endpoint.main_endpoint.host_name
 }

@@ -20,36 +20,38 @@ resource "azurerm_api_management_api" "backend_api" {
   name                = "BackendAPI"
   resource_group_name = azurerm_resource_group.main.name
   api_management_name = azurerm_api_management.apim_service.name
-  revision_path       = "v1" # Revision for the API (e.g., /v1)
+  revision            = "1" # Revision for the API
   display_name        = "Backend API"
   path                = "api" # Base path for this API (e.g., /api/data)
   protocols           = ["https"]
   service_url         = azurerm_function_app.backend_function_app.default_hostname # Points to the Function App hostname
   description         = "API to interact with the backend Azure Function."
-  
-  # Policy to forward requests to the Azure Function
-  # This policy rewrites the URL to correctly target the function
-  # and optionally adds API Key to the request headers for the backend if needed (though Function App auth is different)
-  policy {
-    xml_content = <<-XML
-      <policies>
-        <inbound>
-          <base />
-          <set-backend-service base-url="https://${azurerm_function_app.backend_function_app.default_hostname}/api" />
-          <rewrite-uri template="@(context.Request.Url.Path.ToString().Replace("/api", "/"))" />
-        </inbound>
-        <backend>
-          <base />
-        </backend>
-        <outbound>
-          <base />
-        </outbound>
-        <on-error>
-          <base />
-        </on-error>
-      </policies>
-    XML
-  }
+}
+
+# API Policy for Backend API
+resource "azurerm_api_management_api_policy" "backend_api_policy" {
+  api_name            = azurerm_api_management_api.backend_api.name
+  api_management_name = azurerm_api_management.apim_service.name
+  resource_group_name = azurerm_resource_group.main.name
+
+  xml_content = <<-XML
+    <policies>
+      <inbound>
+        <base />
+        <set-backend-service base-url="https://${azurerm_function_app.backend_function_app.default_hostname}/api" />
+        <rewrite-uri template="@(context.Request.Url.Path.ToString().Replace("/api", "/"))" />
+      </inbound>
+      <backend>
+        <base />
+      </backend>
+      <outbound>
+        <base />
+      </outbound>
+      <on-error>
+        <base />
+      </on-error>
+    </policies>
+  XML
 }
 
 # 3. API Operation for /data (GET)

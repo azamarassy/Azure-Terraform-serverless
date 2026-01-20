@@ -1,93 +1,93 @@
 # functions.tf
-# This file defines the Azure Function App and its supporting resources,
-# including a Storage Account, Application Insights for monitoring, and an App Service Plan.
-# Azure Function Apps provide serverless compute capabilities.
+# このファイルは、Azure Function App とそのサポートリソースを定義します。
+# これには、ストレージアカウント、監視用の Application Insights、App Service プランが含まれます。
+# Azure Function App は、サーバーレスコンピューティング機能を提供します。
 
-# 1. Storage Account for Azure Functions
-# Azure Function Apps require a storage account to manage triggers and log function executions.
+# 1. Azure Functions 用ストレージアカウント
+# Azure Function App は、トリガーを管理し、関数の実行をログに記録するためにストレージアカウントを必要とします。
 resource "azurerm_storage_account" "functions" {
-  # Name of the storage account. Must be globally unique.
-  name                     = "${var.function_app_name}sa" # Unique name needed
-  # The resource group in which to create the storage account.
+  # ストレージアカウントの名前。グローバルで一意である必要があります。
+  name                     = "${var.function_app_name}sa" # 一意の名前が必要
+  # ストレージアカウントを作成するリソースグループ。
   resource_group_name      = azurerm_resource_group.main.name
-  # The Azure region where the storage account will be deployed.
+  # ストレージアカウントがデプロイされる Azure リージョン。
   location                 = azurerm_resource_group.main.location
-  # Tier of the storage account (e.g., "Standard", "Premium").
+  # ストレージアカウントのティア (例: "Standard", "Premium")。
   account_tier             = "Standard"
-  # Replication type for the storage account (e.g., "LRS", "GRS", "RA-GRS").
+  # ストレージアカウントのレプリケーションタイプ (例: "LRS", "GRS", "RA-GRS")。
   account_replication_type = "LRS"
 }
 
-# 2. Application Insights for monitoring
-# Application Insights is an Application Performance Management (APM) service for monitoring live web applications.
+# 2. 監視用 Application Insights
+# Application Insights は、ライブ Web アプリケーションを監視するためのアプリケーションパフォーマンス管理 (APM) サービスです。
 resource "azurerm_application_insights" "app_insights" {
-  # Name of the Application Insights resource.
+  # Application Insights リソースの名前。
   name                = "${var.function_app_name}-appinsights"
-  # The Azure region where Application Insights will be deployed.
+  # Application Insights がデプロイされる Azure リージョン。
   location            = azurerm_resource_group.main.location
-  # The resource group in which to create the Application Insights resource.
+  # Application Insights リソースを作成するリソースグループ。
   resource_group_name = azurerm_resource_group.main.name
-  # Type of the application being monitored (e.g., "web", "other").
+  # 監視対象のアプリケーションのタイプ (例: "web", "other")。
   application_type    = "web"
 }
 
-# 3. Consumption App Service Plan
-# Defines the hosting plan for the Azure Function App.
-# A Consumption plan automatically scales and you only pay for the compute resources consumed.
+# 3. Consumption App Service プラン
+# Azure Function App のホスティングプランを定義します。
+# Consumption プランは自動的にスケーリングし、消費されたコンピューティングリソースに対してのみ課金されます。
 resource "azurerm_service_plan" "functions_plan" {
-  # Name of the App Service Plan.
+  # App Service プランの名前。
   name                = "${var.function_app_name}-plan"
-  # The Azure region where the App Service Plan will be deployed.
+  # App Service プランがデプロイされる Azure リージョン。
   location            = azurerm_resource_group.main.location
-  # The resource group in which to create the App Service Plan.
+  # App Service プランを作成するリソースグループ。
   resource_group_name = azurerm_resource_group.main.name
-  # Operating system type for the App Service Plan (e.g., "Windows", "Linux").
+  # App Service プランのオペレーティングシステムタイプ (例: "Windows", "Linux")。
   os_type             = "Linux"
-  # SKU determines the pricing tier and capabilities of the plan. "Y1" is for Consumption.
-  sku_name            = "Y1" # Consumption Plan for Linux
+  # SKU はプランの価格ティアと機能を決定します。"Y1" は Consumption プラン用です。
+  sku_name            = "Y1" # Linux 用 Consumption プラン
 }
 
 # 4. Azure Function App
-# Defines the Azure Function App where serverless code will run.
+# サーバーレスコードが実行される Azure Function App を定義します。
 resource "azurerm_function_app" "backend_function_app" {
-  # Name of the Function App.
+  # Function App の名前。
   name                       = var.function_app_name
-  # The Azure region where the Function App will be deployed.
+  # Function App がデプロイされる Azure リージョン。
   location                   = azurerm_resource_group.main.location
-  # The resource group in which to create the Function App.
+  # Function App を作成するリソースグループ。
   resource_group_name        = azurerm_resource_group.main.name
-  # ID of the App Service Plan where the Function App will run.
+  # Function App が実行される App Service プランの ID。
   app_service_plan_id        = azurerm_service_plan.functions_plan.id
-  # Name of the associated storage account.
+  # 関連付けられたストレージアカウントの名前。
   storage_account_name       = azurerm_storage_account.functions.name
-  # Access key for the associated storage account.
+  # 関連付けられたストレージアカウントのアクセスキー。
   storage_account_access_key = azurerm_storage_account.functions.primary_access_key
-  # Runtime version for the Function App.
-  version                    = "~3" # Python runtime version (e.g., Python 3.9) - check Azure docs for exact string
+  # Function App のランタイムバージョン。
+  version                    = "~3" # Python ランタイムバージョン (例: Python 3.9) - 正確な文字列は Azure ドキュメントを確認してください
 
-  # Application settings for the Function App.
+  # Function App のアプリケーション設定。
   app_settings = {
-    # Specifies the worker runtime for the function (e.g., "python", "dotnet").
+    # 関数のワーカーランタイムを指定します (例: "python", "dotnet")。
     "FUNCTIONS_WORKER_RUNTIME" = "python"
-    # Connection string for Application Insights for monitoring.
+    # 監視用の Application Insights への接続文字列。
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.app_insights.connection_string
-    # Important for Consumption Plan: ensures code is run directly from the deployment package.
-    "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false" # Important for Consumption Plan, ensures code is run from package
-    # Enables building during deployment, useful for dependencies.
-    "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true" # For building from package
-    # Sets the logging level for the function app.
+    # Consumption プランにとって重要: コードがデプロイパッケージから直接実行されることを保証します。
+    "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false" # Consumption プランにとって重要。コードがパッケージから実行されることを保証する
+    # デプロイ中のビルドを有効にします。依存関係に役立ちます。
+    "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true" # パッケージからのビルド用
+    # Function App のログレベルを設定します。
     "LOG_LEVEL" = var.log_level
   }
 
-  # Site configuration settings for the Function App.
+  # Function App のサイト構成設定。
   site_config {
-    # Specifies the Linux FX version, including the Python runtime.
-    linux_fx_version = "PYTHON|3.9" # Specify Python 3.9
+    # Python ランタイムを含む Linux FX バージョンを指定します。
+    linux_fx_version = "PYTHON|3.9" # Python 3.9 を指定
   }
 
-  # Configuration for the Managed Identity of the Function App.
+  # Function App のマネージド ID の構成。
   identity {
-    # Type of Managed Service Identity. "SystemAssigned" means Azure automatically manages the identity.
-    type = "SystemAssigned" # Enable Managed Identity for the Function App
+    # マネージドサービス ID のタイプ。"SystemAssigned" は Azure が ID を自動的に管理することを意味します。
+    type = "SystemAssigned" # Function App のマネージド ID を有効にする
   }
 }

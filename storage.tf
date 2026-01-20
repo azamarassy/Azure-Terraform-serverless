@@ -1,32 +1,32 @@
 # storage.tf
-# This file defines the Azure Storage Account used to host a static website.
-# Azure Blob Storage can be configured to serve static content directly from a container,
-# which is a cost-effective and scalable solution for static web applications.
+# このファイルは、静的ウェブサイトをホストするために使用される Azure Storage Account を定義します。
+# Azure Blob Storage は、コンテナから直接静的コンテンツを配信するように構成でき、
+# 静的ウェブアプリケーションにとって費用対効果が高くスケーラブルなソリューションです。
 
-# Azure Storage Account for Static Website Hosting
+# 静的ウェブサイトホスティング用の Azure Storage Account
 resource "azurerm_storage_account" "static_website" {
-  # The name of the storage account. Must be globally unique across Azure.
+  # ストレージアカウントの名前。Azure 全体でグローバルに一意である必要があります。
   name                     = var.storage_account_name
-  # The resource group in which to create the storage account.
+  # ストレージアカウントを作成するリソースグループ。
   resource_group_name      = azurerm_resource_group.main.name
-  # The Azure region where the storage account will be deployed.
+  # ストレージアカウントがデプロイされる Azure リージョン。
   location                 = azurerm_resource_group.main.location
-  # Tier of the storage account (e.g., "Standard", "Premium"). "Standard" is common for static websites.
+  # ストレージアカウントのティア (例: "Standard", "Premium")。「Standard」は静的ウェブサイトで一般的です。
   account_tier             = "Standard"
-  # Replication type for the storage account.
-  # LRS (Locally Redundant Storage) provides durability within a single datacenter.
-  # Consider GRS (Geo-Redundant Storage) or RA-GRS for higher durability and availability if needed.
-  account_replication_type = "LRS" # Locally Redundant Storage; adjust as needed for durability
-  # Minimum TLS version required for connections to the storage account. Enforcing TLS 1.2 for security.
+  # ストレージアカウントのレプリケーションタイプ。
+  # LRS (ローカル冗長ストレージ) は、単一のデータセンター内での耐久性を提供します。
+  # 必要に応じて、より高い耐久性と可用性のために GRS (地理冗長ストレージ) または RA-GRS を検討してください。
+  account_replication_type = "LRS" # ローカル冗長ストレージ。耐久性に応じて調整してください。
+  # ストレージアカウントへの接続に必要とされる最小 TLS バージョン。セキュリティのために TLS 1.2 を強制します。
   min_tls_version          = "TLS1_2"
 
-  # Configuration for static website hosting.
+  # 静的ウェブサイトホスティングの構成。
   static_website {
-    # The default document to serve when a request is made to the root or a directory.
+    # ルートまたはディレクトリへのリクエスト時に配信されるデフォルトのドキュメント。
     index_document     = "index.html"
-    # The document to serve when a 404 Not Found error occurs.
-    # For Single Page Applications (SPAs), this often points to the index.html
-    # to allow client-side routing to handle the URL.
-    error_404_document = "index.html" # A common pattern for single-page applications
+    # 404 Not Found エラーが発生したときに配信されるドキュメント。
+    # シングルページアプリケーション (SPA) の場合、これは多くの場合 index.html を指し、
+    # クライアントサイドルーティングが URL を処理できるようにします。
+    error_404_document = "index.html" # シングルページアプリケーションの一般的なパターン
   }
 }

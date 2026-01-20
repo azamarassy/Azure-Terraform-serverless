@@ -7,7 +7,13 @@ output "resource_group_name" {
 
 output "api_management_gateway_url" {
   description = "The URL of the Azure API Management gateway."
-  value       = "Placeholder for Azure API Management Gateway URL" # Will be updated later
+  value       = azurerm_api_management.apim_service.gateway_url
+}
+
+output "api_management_subscription_primary_key" {
+  description = "The primary key for the API Management Starter subscription."
+  value       = azurerm_api_management_subscription.product_subscription.primary_key
+  sensitive   = true
 }
 
 output "function_app_default_hostname" {

@@ -19,3 +19,8 @@ output "front_door_frontend_endpoint_host_name" {
   description = "The host name of the Azure Front Door frontend endpoint."
   value       = "Placeholder for Azure Front Door Frontend Host Name" # Will be updated later
 }
+
+output "static_website_endpoint" {
+  description = "The primary web endpoint for the static website hosted on Azure Blob Storage."
+  value       = azurerm_storage_account.static_website.primary_web_endpoint
+}

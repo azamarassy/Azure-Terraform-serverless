@@ -12,6 +12,6 @@ provider "azurerm" {
 }
 
 resource "azurerm_resource_group" "main" {
-  name     = "rg-serverless-app"
-  location = "japaneast"
+  name     = var.resource_group_name
+  location = var.location
 }

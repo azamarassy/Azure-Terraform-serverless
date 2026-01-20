@@ -147,4 +147,11 @@ resource "azurerm_cdn_frontdoor_route" "api_management_route" {
   cdn_frontdoor_cache_configuration {
     query_string_caching_behavior = "BypassCaching" # Don't cache API calls
   }
+
+  custom_request_header {
+    header_action = "Append"
+    header_name   = "Ocp-Apim-Subscription-Key"
+    value         = azurerm_api_management_subscription.product_subscription.primary_key
+  }
+
 }

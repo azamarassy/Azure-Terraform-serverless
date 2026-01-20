@@ -1,71 +1,71 @@
 # outputs.tf
-# This file defines the output values that will be displayed after Terraform applies the configuration.
-# These outputs provide important information about the deployed Azure resources,
-# such as URLs, IDs, and access keys, which can be useful for further configuration or integration.
+# このファイルは、Terraform が構成を適用した後に表示される出力値を定義します。
+# これらの出力は、デプロイされた Azure リソースに関する重要な情報 (URL、ID、アクセスキーなど) を提供し、
+# さらなる構成や統合に役立ちます。
 
-# Output: Resource Group Name
-# Provides the name of the main Azure Resource Group created by this Terraform configuration.
+# 出力: リソースグループ名
+# この Terraform 構成によって作成されたメインの Azure リソースグループの名前を提供します。
 output "resource_group_name" {
-  description = "The name of the Azure Resource Group."
+  description = "Azure リソースグループの名前。"
   value       = azurerm_resource_group.main.name
 }
 
-# Output: API Management Gateway URL
-# Provides the URL of the Azure API Management service's gateway, used to access published APIs.
+# 出力: API Management ゲートウェイ URL
+# 公開された API にアクセスするために使用される、Azure API Management サービスのゲートウェイ URL を提供します。
 output "api_management_gateway_url" {
-  description = "The URL of the Azure API Management gateway."
+  description = "Azure API Management ゲートウェイの URL。"
   value       = azurerm_api_management.apim_service.gateway_url
 }
 
-# Output: API Management Subscription Primary Key
-# Provides the primary subscription key for the "Starter" product in API Management.
-# This value is marked as sensitive to prevent it from being displayed in plaintext in logs.
+# 出力: API Management サブスクリプションのプライマリキー
+# API Management の「Starter」製品のプライマリサブスクリプションキーを提供します。
+# この値は、ログに平文で表示されないように機密としてマークされています。
 output "api_management_subscription_primary_key" {
-  description = "The primary key for the API Management Starter subscription."
+  description = "API Management Starter サブスクリプションのプライマリキー。"
   value       = azurerm_api_management_subscription.product_subscription.primary_key
   sensitive   = true
 }
 
-# Output: Function App Default Hostname
-# Provides the default hostname of the deployed Azure Function App, which is its public URL.
+# 出力: Function App のデフォルトホスト名
+# デプロイされた Azure Function App のデフォルトホスト名、つまりその公開 URL を提供します。
 output "function_app_default_hostname" {
-  description = "The default hostname of the Azure Function App."
+  description = "Azure Function App のデフォルトホスト名。"
   value       = azurerm_function_app.backend_function_app.default_hostname
 }
 
-# Output: Function App Identity Principal ID
-# Provides the Principal ID of the System-Assigned Managed Identity associated with the Function App.
-# This ID can be used to grant the Function App access to other Azure resources.
+# 出力: Function App の ID プリンシパル ID
+# Function App に関連付けられたシステム割り当てマネージド ID のプリンシパル ID を提供します。
+# この ID を使用して、Function App に他の Azure リソースへのアクセス権を付与できます。
 output "function_app_identity_principal_id" {
-  description = "The Principal ID of the System Assigned Managed Identity for the Function App."
+  description = "Function App のシステム割り当てマネージド ID のプリンシパル ID。"
   value       = azurerm_function_app.backend_function_app.identity[0].principal_id
 }
 
-# Output: Front Door Frontend Endpoint Hostname
-# Provides the hostname of the Azure Front Door's frontend endpoint, which is the public entry point.
+# 出力: Front Door フロントエンドエンドポイントのホスト名
+# Azure Front Door のフロントエンドエンドポイントのホスト名、つまり公開エントリポイントを提供します。
 output "front_door_frontend_endpoint_host_name" {
-  description = "The host name of the Azure Front Door frontend endpoint."
+  description = "Azure Front Door フロントエンドエンドポイントのホスト名。"
   value       = azurerm_cdn_frontdoor_endpoint.main_endpoint.host_name
 }
 
-# Output: Static Website Endpoint
-# Provides the primary web endpoint URL for the static website hosted on Azure Blob Storage.
+# 出力: 静的ウェブサイトのエンドポイント
+# Azure Blob Storage でホストされている静的ウェブサイトのプライマリウェブエンドポイント URL を提供します。
 output "static_website_endpoint" {
-  description = "The primary web endpoint for the static website hosted on Azure Blob Storage."
+  description = "Azure Blob Storage でホストされている静的ウェブサイトのプライマリウェブエンドポイント。"
   value       = azurerm_storage_account.static_website.primary_web_endpoint
 }
 
-# Output: DNS Zone Name
-# Provides the name of the Azure DNS Zone created for the custom domain.
+# 出力: DNS ゾーン名
+# カスタムドメイン用に作成された Azure DNS ゾーンの名前を提供します。
 output "dns_zone_name" {
-  description = "The name of the Azure DNS Zone."
+  description = "Azure DNS ゾーンの名前。"
   value       = azurerm_dns_zone.primary.name
 }
 
-# Output: DNS Zone Nameservers
-# Provides the list of nameservers for the Azure DNS Zone.
-# These nameservers must be configured at the domain registrar for the custom domain to resolve correctly.
+# 出力: DNS ゾーンのネームサーバー
+# Azure DNS ゾーンのネームサーバーのリストを提供します。
+# カスタムドメインが正しく解決されるように、これらのネームサーバーはドメインレジストラで構成する必要があります。
 output "dns_zone_nameservers" {
-  description = "The nameservers for the Azure DNS Zone."
+  description = "Azure DNS ゾーンのネームサーバー。"
   value       = azurerm_dns_zone.primary.name_servers
 }
